@@ -40,7 +40,7 @@ Esta ruta fue **validada con un test de estrés real**: se forzó una credencial
 
 ## Base de datos (Notion)
 
-Link en modo lectura: *(agregar aquí)*
+Link en modo lectura: [https://political-marmoset-d7e.notion.site/38e0aa5f7b9180088303d9102d4dcab5](https://political-marmoset-d7e.notion.site/38e0aa5f7b9180088303d9102d4dcab5?v=38e0aa5f7b918058b526000c25b27035&source=copy_link)
 
 La tabla **Artículos** funciona como memoria central del sistema, con campos de estado (`Procesado por IA`, `Aprobado por humano`, `Rechazado`, `Error`), log de error y URL fuente.
 
