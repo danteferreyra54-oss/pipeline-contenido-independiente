@@ -1,0 +1,478 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2f304bda-1e32-4925-a036-1b75eafb5513",
+      "name": "Trigger - cada 3 horas"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-80ea-860e-fcc791a59b35",
+          "mode": "list",
+          "cachedResultName": "Fuentes RSS",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180ea860efcc791a59b35"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Activa|checkbox",
+              "condition": "equals",
+              "checkboxValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1ce89ba0-0685-49cb-96d6-fb7a67080c2a",
+      "name": "Obtener fuentes activas",
+      "credentials": {
+        "notionApi": {
+          "id": "uJVUwVsu8o0mmGAK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "property_url_rss",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a015fcb9-8cb5-4d94-bfc6-2a8b44ff87d8",
+      "name": "Separar fuentes"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.property_url_rss }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "e38b43e9-c14d-45e4-9e82-951729806f1a",
+      "name": "Leer feed RSS"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Sos un redactor periodístico del medio Club Atlético Independiente. \nTu tarea es escribir un borrador de nota periodística en español rioplatense basándote en la siguiente noticia:\n\nTítulo: {{ $json.title }}\nContenido: {{ $json.contentSnippet }}\nFuente: {{ $json.link }}\n\nEl borrador debe:\n- Tener un título atractivo\n- Tener 3 párrafos concisos\n- Mantener un tono periodístico profesional pero cercano\n- No inventar información que no esté en la fuente"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 1000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1296,
+        0
+      ],
+      "id": "62a11645-63b8-4a4b-b428-d8e547aaca7a",
+      "name": "Generar borrador open AI",
+      "executeOnce": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "78rSG0kZ41z4FZVZ",
+          "name": "OpenAI account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "danteferreyra54@gmail.com",
+        "subject": "={{ $json.name }}",
+        "message": "={{ $json.property_borrador_ia.replace(/\\n/g, '<br>') }}\n\n<br><br>\n<strong>¿Aprobás esta nota?</strong><br><br>\n\n<a href=\"http://localhost:5678/webhook/aprobar?id={{ $json.id }}\">✅ APROBAR</a>\n&nbsp;&nbsp;&nbsp;\n<a href=\"http://localhost:5678/webhook/rechazar?id={{ $json.id }}\">❌ RECHAZAR</a>\n\n<br><br>\n<em>Si querés editar, hacelo en Notion antes de aprobar.</em>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        -272
+      ],
+      "id": "4c2a4c15-a232-4b6c-ae4c-05fae44cf738",
+      "name": "Enviar para Aprobación HITL",
+      "webhookId": "2232b8e9-27ae-4a7d-92bb-155efd8129c3",
+      "executeOnce": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XSRGgPDGBDeF2pNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "aprobar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1232,
+        256
+      ],
+      "id": "dbc85e6f-3d26-4102-9a92-c18eed3843d6",
+      "name": "Webhook - aprobar",
+      "webhookId": "03b57a9c-310e-4bf3-8a19-7476ad073c92"
+    },
+    {
+      "parameters": {
+        "path": "rechazar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1232,
+        448
+      ],
+      "id": "670c312b-f6e8-4f9d-9646-ba2c12071a18",
+      "name": "Webhook - rechazar",
+      "webhookId": "6c5b8244-e2d8-4713-ad16-75c30ee6d114"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.query.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "notion-version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"properties\": {\n    \"Estado\": {\n      \"select\": {\n        \"name\": \"Rechazado\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1456,
+        448
+      ],
+      "id": "435c5829-34c4-448e-b5b4-4d0ce6258203",
+      "name": "Actualizar estado - Rechazado",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2irxbViDN2Rpy9nE",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.query.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "notion-version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"properties\": {\n    \"Estado\": {\n      \"select\": {\n        \"name\": \"Aprobado por humano\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1456,
+        256
+      ],
+      "id": "042a3cbd-1e75-496a-8458-4f8ba453f351",
+      "name": "Actualizar estado - Aprobado",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2irxbViDN2Rpy9nE",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-8008-8303-d9102d4dcab5",
+          "mode": "list",
+          "cachedResultName": "Artículos",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180088303d9102d4dcab5"
+        },
+        "title": "={{ $('Leer feed RSS').item.json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Borrador IA|rich_text",
+              "textContent": "={{ $json.output[0].content[0].text }}"
+            },
+            {
+              "key": "Estado|select",
+              "selectValue": "Procesado por IA"
+            },
+            {
+              "key": "Fecha|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "URL fuente|url",
+              "urlValue": "={{ $('Leer feed RSS').item.json.link }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1664,
+        -144
+      ],
+      "id": "cadbb3fc-38af-44c3-b743-5e348d59f141",
+      "name": "Guardar borrador en notion",
+      "credentials": {
+        "notionApi": {
+          "id": "uJVUwVsu8o0mmGAK",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-8008-8303-d9102d4dcab5",
+          "mode": "list",
+          "cachedResultName": "Artículos",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180088303d9102d4dcab5"
+        },
+        "title": "={{ $json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Estado|select",
+              "selectValue": "Error"
+            },
+            {
+              "key": "Log de error|rich_text",
+              "textContent": "={{ $json.error }}"
+            },
+            {
+              "key": "URL fuente|url",
+              "urlValue": "={{ $json.link }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1664,
+        64
+      ],
+      "id": "ff0517b8-d4c4-4d46-b2f0-d95d07d0f5c2",
+      "name": "Guardar error en Notion",
+      "credentials": {
+        "notionApi": {
+          "id": "uJVUwVsu8o0mmGAK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        992,
+        0
+      ],
+      "id": "a7b7b5f6-5ad2-456e-b7c7-6ea92d5f232b",
+      "name": "Remove Duplicates"
+    }
+  ],
+  "connections": {
+    "Trigger - cada 3 horas": {
+      "main": [
+        [
+          {
+            "node": "Obtener fuentes activas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener fuentes activas": {
+      "main": [
+        [
+          {
+            "node": "Separar fuentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar fuentes": {
+      "main": [
+        [
+          {
+            "node": "Leer feed RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer feed RSS": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar borrador open AI": {
+      "main": [
+        [
+          {
+            "node": "Guardar borrador en notion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar error en Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - aprobar": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado - Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - rechazar": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado - Rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar borrador en notion": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Aprobación HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Generar borrador open AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "762998a99b640df6206fe0231f00634773fb87ef4a6ad6768a095a8cc8e1e2ac"
+  }
+}
