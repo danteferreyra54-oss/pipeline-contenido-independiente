@@ -1,0 +1,834 @@
+{
+  "name": "Pipeline de contenido - Independiente",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1904,
+        272
+      ],
+      "id": "4a36efd4-c39d-4e08-91ff-f0b4992957fd",
+      "name": "Trigger - cada 3 horas"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-80ea-860e-fcc791a59b35",
+          "mode": "list",
+          "cachedResultName": "Fuentes RSS",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180ea860efcc791a59b35"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Activa|checkbox",
+              "condition": "equals",
+              "checkboxValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -1696,
+        272
+      ],
+      "id": "c3c3a48c-57d0-4d86-ade6-e79f2ee45b2e",
+      "name": "Obtener fuentes activas",
+      "credentials": {
+        "notionApi": {
+          "id": "jNkWOx8EQZhvQ9kJ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "property_url_rss",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1488,
+        272
+      ],
+      "id": "53bcb632-b0a7-4c28-8400-f57a97169347",
+      "name": "Separar fuentes"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.property_url_rss }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -1232,
+        272
+      ],
+      "id": "2a16216f-5831-4f23-9a37-c8958a8bb9d6",
+      "name": "Leer feed RSS"
+    },
+    {
+      "parameters": {
+        "sendTo": "danteferreyra54@gmail.com",
+        "subject": "={{ $json.name }}",
+        "message": "={{ $json.property_borrador_ia.replace(/\\n/g, '<br>') }}\n\n<br><br>\n<strong>¿Aprobás esta nota?</strong><br><br>\n\n<a href=\"https://n8n-production-5aff.up.railway.app/webhook/aprobar?id={{ $json.id }}\">✅ APROBAR</a>\n&nbsp;&nbsp;&nbsp;\n<a href=\"http://localhost:5678/webhook/rechazar?id={{ $json.id }}\">❌ RECHAZAR</a>\n\n<br><br>\n<em>Si querés editar, hacelo en Notion antes de aprobar.</em>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        -16
+      ],
+      "id": "50cdea1d-2215-429d-9e16-878dee3341dd",
+      "name": "Enviar para Aprobación HITL",
+      "webhookId": "2232b8e9-27ae-4a7d-92bb-155efd8129c3",
+      "executeOnce": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OHKWnwEX7fmTUGB8",
+          "name": "gmail agentecai54"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "aprobar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        656
+      ],
+      "id": "09b2a1b6-24a0-4462-b671-a961a1787c6b",
+      "name": "Webhook - aprobar",
+      "webhookId": "03b57a9c-310e-4bf3-8a19-7476ad073c92"
+    },
+    {
+      "parameters": {
+        "path": "rechazar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        848
+      ],
+      "id": "f85a9482-e27d-44fb-affe-1f7c5a115bfa",
+      "name": "Webhook - rechazar",
+      "webhookId": "6c5b8244-e2d8-4713-ad16-75c30ee6d114"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.query.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "notion-version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"properties\": {\n    \"Estado\": {\n      \"select\": {\n        \"name\": \"Rechazado\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -448,
+        848
+      ],
+      "id": "18530eaf-7eea-48c0-8947-8e5672b59ae9",
+      "name": "Actualizar estado - Rechazado",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "xQIwqztVOO2xlgVh",
+          "name": "notion API header"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.query.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "notion-version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"properties\": {\n    \"Estado\": {\n      \"select\": {\n        \"name\": \"Aprobado por humano\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -448,
+        656
+      ],
+      "id": "e254fc1b-01b0-4204-9f97-849418312565",
+      "name": "Actualizar estado - Aprobado",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "xQIwqztVOO2xlgVh",
+          "name": "notion API header"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-8008-8303-d9102d4dcab5",
+          "mode": "list",
+          "cachedResultName": "Artículos",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180088303d9102d4dcab5"
+        },
+        "title": "={{ $('Leer feed RSS').item.json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Borrador IA|rich_text",
+              "textContent": "={{ $json.content }}"
+            },
+            {
+              "key": "Estado|select",
+              "selectValue": "Procesado por IA"
+            },
+            {
+              "key": "Fecha|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "URL fuente|url",
+              "urlValue": "={{ $('Leer feed RSS').item.json.link }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        112
+      ],
+      "id": "6a4b2dc4-ffe8-4d93-9efc-1995da4bfd74",
+      "name": "Guardar borrador en notion",
+      "credentials": {
+        "notionApi": {
+          "id": "jNkWOx8EQZhvQ9kJ",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        272
+      ],
+      "id": "953c4fea-8a6c-4bf1-998f-107ca9567103",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Redactá un artículo periodístico para el sitio web del Club Atlético Independiente basándote en esta noticia:\n\nTítulo: {{ $json.title }}\nContenido: {{ $json.content }}\nFuente: {{ $json.link }}",
+        "options": {
+          "systemMessage": "ROL:\nEres un editor de contenido automatizado para un medio independiente especializado en Club Atletico Independiente de Avellaneda. Tu funcion es procesar noticias crudas provenientes de feeds RSS y transformarlas en borradores editoriales listos para revision humana.\nAMBITO:\nOperas sobre dos ejes de cobertura: (1) noticias deportivas y institucionales del Club Atletico Independiente, y (2) la campana electoral de Gaston Gaudio a la presidencia del club. No tienes autorizacion para generar contenido sobre otros clubes, figuras o temas que no esten directamente vinculados a Independiente o a Gaudio.\nOBJETIVO:\nTransformar el titulo y contenido crudo de cada noticia en un borrador editorial con: un titulo atractivo y directo, una bajada de no mas de 2 lineas, y un cuerpo reescrito de maximo 3 parrafos respetando los datos facticos originales.\nREGLAS Y LIMITES:\n\nNO inventas declaraciones, datos, fechas ni cifras que no figuren en el input original.\nNO publicas ni envias contenido directamente. Solo generas borradores para aprobacion humana.\nNO modificas nombres propios, citas textuales ni resultados deportivos.\nSi la noticia no es relevante para Independiente o Gaudio, responde unicamente: \"Noticia descartada: fuera del ambito editorial.\"\nSi el input llega incompleto, responde: \"Input invalido. Se requiere contenido para procesar.\"\nAnte cualquier dato dudoso incluye la nota: \"Verificar con fuente original antes de publicar.\"",
+          "maxIterations": 7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -624,
+        272
+      ],
+      "id": "4c5daa37-1d9f-40fa-8fbd-c7555f7f860e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 1024,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        -720,
+        448
+      ],
+      "id": "896b4277-626d-49e8-bec4-213794d0b6ad",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "iCQoicdcqtLFFXLp",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "rss-pipeline-independiente"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -560,
+        464
+      ],
+      "id": "777441f3-2a2e-4542-9a25-19350e8d3175",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1056,
+        576
+      ],
+      "id": "06e39622-372c-47ba-913a-6098660c0550",
+      "name": "When chat message received",
+      "webhookId": "1d6c5150-c1b6-4711-841c-cf5d45d834a5",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Usa esta herramienta cuando hayas terminado de procesar y redactar una noticia sobre Club Atletico Independiente de Avellaneda o sobre la campana electoral de Gaston Gaudio a la presidencia del club. Activa esta herramienta para guardar el borrador editorial generado, incluyendo titulo, bajada y cuerpo del articulo, en la base de datos de Notion del medio. No la actives para saludos, consultas generales o noticias que hayan sido descartadas por estar fuera del ambito editorial. Solo guardar borradores que esten completos y listos para revision humana.",
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-8008-8303-d9102d4dcab5",
+          "mode": "list",
+          "cachedResultName": "Artículos",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180088303d9102d4dcab5"
+        },
+        "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Title', ``, 'string') }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Borrador IA|rich_text",
+              "textContent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('propertyValues0_Text', ``, 'string') }}"
+            },
+            {
+              "key": "Estado|select",
+              "selectValue": "Pendiente"
+            },
+            {
+              "key": "Fecha|date",
+              "date": "={{$now}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        448
+      ],
+      "id": "674dd6ec-a9b3-48d8-903f-c761e3a812b8",
+      "name": "Create a database page in Notion",
+      "credentials": {
+        "notionApi": {
+          "id": "jNkWOx8EQZhvQ9kJ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=[BORRADOR] {{ $json.name }}",
+        "message": "=Nuevo artículo generado por el Agente CAI.  Título: {{ $json.name }}  Borrador: {{ $json.properties.borrador_ia.rich_text[0].plain_text }}  Revisá y aprobá desde el panel de aprobación.",
+        "options": {
+          "sendTo": "danteferreyra54@gmail.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        544,
+        288
+      ],
+      "id": "3fb704e9-9498-4a2b-8ae1-1e019460b655",
+      "name": "Create a draft",
+      "webhookId": "ea048c8f-c8d5-4c6d-98dd-939b08f3bc3f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OHKWnwEX7fmTUGB8",
+          "name": "gmail agentecai54"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1824,
+        624
+      ],
+      "id": "b12f32b6-6c9a-427c-9fdb-b32ffd50a5c7",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OHKWnwEX7fmTUGB8",
+          "name": "gmail agentecai54"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e8fa92fc-1249-415d-bb47-14453525e4bf",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "noreply",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "5f7278f5-95bd-4acf-9121-213d5567d6c8",
+              "leftValue": "={{ $json.Subject }}",
+              "rightValue": "out of office",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1616,
+        624
+      ],
+      "id": "81f8140e-7727-475e-bc49-26690e9e60f0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "38e0aa5f-7b91-8008-8303-d9102d4dcab5",
+          "mode": "list",
+          "cachedResultName": "Artículos CAI",
+          "cachedResultUrl": "https://app.notion.com/p/38e0aa5f7b9180088303d9102d4dcab5"
+        },
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Título|title",
+              "condition": "contains",
+              "titleValue": "={{ $json.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -272,
+        112
+      ],
+      "id": "d22a7611-a381-4b9d-a93a-c19fc80c3e5d",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "jNkWOx8EQZhvQ9kJ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7e238ed2-3aea-4d5d-9fb2-ccda3c11e099",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        112
+      ],
+      "id": "54a9dfb1-7825-4ef0-8e79-8e2912467af7",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5d681971-c388-407d-bf20-f278ff77e501",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "d63bfbce-fd70-4c33-a12a-6629bd444903",
+              "name": "titulo",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "4afb4072-5b2c-43ef-80d6-b02bd19b0bdd",
+              "name": "url_notion",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        16
+      ],
+      "id": "09a4e3ee-ec87-45be-a48c-d022d229d1a4",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger - cada 3 horas": {
+      "main": [
+        [
+          {
+            "node": "Obtener fuentes activas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener fuentes activas": {
+      "main": [
+        [
+          {
+            "node": "Separar fuentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar fuentes": {
+      "main": [
+        [
+          {
+            "node": "Leer feed RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer feed RSS": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - aprobar": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado - Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - rechazar": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado - Rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar borrador en notion": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a database page in Notion": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar para Aprobación HITL": {
+      "main": [
+        []
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Guardar borrador en notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Aprobación HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fc5c95cc-d207-4ca4-aaa1-d640ccf54aea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ab0f5b049baa104437e90ca16697734d3bfc5d56965d88724bf8bd7308d09833"
+  },
+  "nodeGroups": [],
+  "id": "IAJPGWAlKQTmR9Pq",
+  "tags": []
+}
